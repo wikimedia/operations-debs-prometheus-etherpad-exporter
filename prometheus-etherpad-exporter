@@ -1,0 +1,138 @@
+#!/usr/bin/python
+# Copyright 2017 Moritz Muehlenhoff
+#                Alexandros Kosiaris
+#                Filippo Giunchedi
+#                Wikimedia Foundation
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import logging
+import sys
+import time
+import urllib2
+import json
+
+from prometheus_client import start_http_server, Summary
+from prometheus_client.core import (CounterMetricFamily, GaugeMetricFamily,
+                                    REGISTRY)
+
+log = logging.getLogger(__name__)
+
+
+class PowerEtherpadCollector(object):
+    scrape_duration = Summary(
+            'etherpad_scrape_duration_seconds', 'Etherpad exporter scrape duration')
+
+    stats_url = 'http://localhost:9001/stats'
+
+    @scrape_duration.time()
+    def collect(self):
+        stats = ''
+
+        try:
+            url = urllib2.urlopen(self.stats_url)
+            if url.code == 200:
+                stats = json.loads(url.read())
+
+        except urllib2.URLError:
+            log.error('Could not connect to Etherpad stats port')
+
+        up = GaugeMetricFamily('etherpad_up', 'Etherpad is running')
+        if not stats:
+            up.add_metric([], 0)
+        else:
+            up.add_metric([], 1)
+        yield up
+
+        gauge_metrics = {
+            'pendingEdits': GaugeMetricFamily('etherpad_pending_edits', 'Number of pending edits'),
+            'memoryUsage': GaugeMetricFamily('etherpad_memory_usage', 'Memory consumption in bytes'),
+            'totalUsers': GaugeMetricFamily('etherpad_total_users', 'Memory consumption in bytes'),
+        }
+
+        counter_metrics = {
+            'connects': CounterMetricFamily('etherpad_connects', 'Number of connections'),
+            'disconnects': CounterMetricFamily('etherpad_disconnects', 'Number of disconnects'),
+        }
+
+        meter_metrics = {
+            'edits': CounterMetricFamily('etherpad_edits', 'Number of edits'),
+            'httpRequests': CounterMetricFamily('etherpad_http_reqs', 'Number of HTTP requests'),
+        }
+
+        for line in stats:
+            try:
+                if line in gauge_metrics:
+                    metric_name, value = line, stats[line]
+                    metric_family = gauge_metrics.get(metric_name)
+
+                if line in counter_metrics:
+                    metric_name, value = line, stats[line]['count']
+                    metric_family = counter_metrics.get(metric_name)
+
+                if line in meter_metrics:
+                    metric_name, value = line, stats[line]['meter']['count']
+                    metric_family = meter_metrics.get(metric_name)
+
+                if metric_name is None:
+                    log.warn('Unknown metric %r from line %r', metric_name, line)
+                    continue
+            except KeyError:
+                log.warn('Unknown metric from line %r', line)
+                continue
+
+            try:
+                value = float(value)
+            except ValueError:
+                value = float('nan')
+            metric_family.add_metric([], value)
+
+        for metric in gauge_metrics.values():
+            yield metric
+
+        for metric in counter_metrics.values():
+            yield metric
+
+        for metric in meter_metrics.values():
+            yield metric
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-l', '--listen', metavar='ADDRESS',
+                        help='Listen on this address', default=':9198')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Enable debug logging')
+    args = parser.parse_args()
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.WARNING)
+
+    address, port = args.listen.split(':', 1)
+
+    log.info('Starting etherpad_exporter on %s:%s', address, port)
+
+    REGISTRY.register(PowerEtherpadCollector())
+    start_http_server(int(port), addr=address)
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,10 @@
+[Unit]
+Description=Prometheus Etherpad Lite Exporter
+
+[Service]
+Restart=always
+User=prometheus
+ExecStart=/usr/bin/prometheus-etherpad-exporter
+
+[Install]
+WantedBy=multi-user.target

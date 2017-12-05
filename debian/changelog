@@ -1,0 +1,5 @@
+prometheus-etherpad-exporter (0.1) jessie-wikimedia; urgency=medium
+
+  * Initial release
+
+ -- Moritz Muehlenhoff <moritz@wikimedia.org>  Tue, 05 Dec 2017 14:46:26 +0000
