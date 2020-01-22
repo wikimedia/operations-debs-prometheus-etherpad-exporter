@@ -1,3 +1,9 @@
+prometheus-etherpad-exporter (0.2) buster-wikimedia; urgency=medium
+
+  * Rebuild for Buster T224580
+
+ -- Moritz Muehlenhoff <moritz@wikimedia.org>  Wed, 22 Jan 2020 09:36:33 +0100
+
 prometheus-etherpad-exporter (0.1) jessie-wikimedia; urgency=medium
 
   * Initial release
