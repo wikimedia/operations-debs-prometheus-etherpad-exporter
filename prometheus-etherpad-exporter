@@ -57,12 +57,14 @@ class PowerEtherpadCollector(object):
         gauge_metrics = {
             'pendingEdits': GaugeMetricFamily('etherpad_pending_edits', 'Number of pending edits'),
             'memoryUsage': GaugeMetricFamily('etherpad_memory_usage', 'Memory consumption in bytes'),
-            'totalUsers': GaugeMetricFamily('etherpad_total_users', 'Memory consumption in bytes'),
+            'totalUsers': GaugeMetricFamily('etherpad_total_users', 'Number of total users'),
         }
 
         counter_metrics = {
             'connects': CounterMetricFamily('etherpad_connects', 'Number of connections'),
             'disconnects': CounterMetricFamily('etherpad_disconnects', 'Number of disconnects'),
+            'rateLimited': CounterMetricFamily('etherpad_ratelimits', 'Number of rate limits'),
+            'failedChangesets': CounterMetricFamily('etherpad_failed_changesets', 'Number of failed changesets'),
         }
 
         meter_metrics = {

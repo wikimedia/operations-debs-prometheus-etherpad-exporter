@@ -1,3 +1,11 @@
+prometheus-etherpad-exporter (0.3) buster-wikimedia; urgency=medium
+
+  * Add the following metrics:
+     rateLimited
+     failedChangesets
+
+ -- Alexandros Kosiaris <akosiaris@wikimedia.org>  Mon, 19 Oct 2020 19:15:13 +0300
+
 prometheus-etherpad-exporter (0.2) buster-wikimedia; urgency=medium
 
   * Rebuild for Buster T224580
